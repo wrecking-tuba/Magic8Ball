@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Magic 8 Ball</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <div class="container">
+    <h1>🎱 Magic 8 Ball</h1>
+    <p>Think of a yes/no question and ask the ball.</p>
+
+    <div class="ball-wrap" aria-live="polite">
+      <div class="ball" id="ball">
+        <div class="ball-window">
+          <div class="ball-text" id="ballText">{{ answer or 'Ask me' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <form id="questionForm" method="POST" autocomplete="off">
+      <input type="text" name="question" id="questionInput" placeholder="Will I get the job?" required>
+      <button type="submit">Ask</button>
+    </form>
+
+    <div class="result {% if not answer %}hidden{% endif %}" id="result">
+      <p class="label">Your question:</p>
+      <p class="question" id="resultQuestion">"{{ question or '' }}"</p>
+      <p class="label">Magic 8 Ball says:</p>
+      <p class="answer" id="resultAnswer">{{ answer or '' }}</p>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("questionForm");
+    const input = document.getElementById("questionInput");
+    const ball = document.getElementById("ball");
+    const ballText = document.getElementById("ballText");
+    const result = document.getElementById("result");
+    const resultQuestion = document.getElementById("resultQuestion");
+    const resultAnswer = document.getElementById("resultAnswer");
+
+    function setResult(question, answer) {
+      resultQuestion.textContent = `"${question}"`;
+      resultAnswer.textContent = answer;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const question = input.value.trim();
+      if (!question) return;
+
+      ball.classList.remove("shake");
+      void ball.offsetWidth;
+      ball.classList.add("shake");
+      ballText.textContent = "Shaking...";
+      result.classList.add("hidden");
+
+      try {
+        const response = await fetch("/api/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question })
+        });
+        const data = await response.json();
+        const answer = data.answer || "Ask again.";
+
+        setTimeout(() => {
+          ballText.textContent = answer;
+          setResult(question, answer);
+          result.classList.remove("hidden");
+        }, 900);
+      } catch (error) {
+        setTimeout(() => {
+          ballText.textContent = "Hmm... try again.";
+          setResult(question, "Hmm... try again.");
+          result.classList.remove("hidden");
+        }, 900);
+      }
+    });
+  </script>
+</body>
+</html>
